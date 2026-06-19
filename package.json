@@ -1,0 +1,33 @@
+{
+  "name": "thai-id-card-agent",
+  "version": "1.0.0",
+  "description": "Thai ID Card Local Agent - Local HTTP server (Bun + Hono) that reads Thai national ID smart cards over PC/SC and serves the data on http://localhost:9001. Runs as a Windows Service.",
+  "type": "module",
+  "private": true,
+  "module": "src/index.ts",
+  "scripts": {
+    "dev": "bun run --watch src/index.ts",
+    "start": "bun run src/index.ts",
+    "build": "bun run scripts/build.ts",
+    "compile": "bun build --compile --target=bun-windows-x64 ./src/index.ts --outfile ./dist/thai-id-card-agent.exe",
+    "install-service": "bun run install-service.ts",
+    "uninstall-service": "bun run uninstall-service.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "hono": "^4.7.0",
+    "node-windows": "^1.0.0-beta.8",
+    "pcsc-mini": "^0.1.3"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "@types/node": "^20.14.0",
+    "typescript": "^5.5.0"
+  },
+  "engines": {
+    "bun": ">=1.2.12"
+  },
+  "patchedDependencies": {
+    "pcsc-mini@0.1.3": "patches/pcsc-mini@0.1.3.patch"
+  }
+}

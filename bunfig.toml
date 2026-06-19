@@ -1,0 +1,17 @@
+# Bun configuration for Thai ID Card Agent
+# https://bun.sh/docs/runtime/bunfig
+
+[install]
+# Keep prebuilt native binaries for pcsc-mini (.node addons) so the agent
+# can talk to the PC/SC stack without a local C/C++ toolchain.
+exact = false
+
+# pcsc-mini ships its native code as a postinstall-free, prebuilt optional
+# dependency (e.g. @pcsc-mini/windows-x86_64). Allow trusted lifecycle
+# scripts in case a future version needs them.
+[install.security]
+# leave defaults
+
+[run]
+# Bun runs TypeScript directly - no separate build step required for `bun run`.
+bun = true

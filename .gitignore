@@ -111,3 +111,11 @@ dist
 
 # TernJS port file
 .tern-port
+
+# Thai ID Card Agent build / service artifacts
+dist/
+dist-installer/
+# node-windows creates this at service-install time
+daemon/
+*.exe
+ThaiIDCardAgent-Setup.exe

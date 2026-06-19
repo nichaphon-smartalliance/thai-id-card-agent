@@ -1,0 +1,45 @@
+diff --git a/node_modules/pcsc-mini/.bun-tag-3540ee3d9f543c03 b/.bun-tag-3540ee3d9f543c03
+new file mode 100644
+index 0000000000000000000000000000000000000000..e69de29bb2d1d6434b8b29ae775ad8c2e48c5391
+diff --git a/build/addon.node.js b/build/addon.node.js
+index d85cd3ead8e6dd1f64e5d511d69d9d85b7b35724..a404dbb4a62e8b13b1aa01c883ad11eb045e3bf6 100644
+--- a/build/addon.node.js
++++ b/build/addon.node.js
+@@ -61,11 +61,32 @@ switch (target) {
+ try {
+   module.exports = require(pkg);
+ } catch (error) {
+-  throw new Error(
+-    `Required addon dependency not found (${pkg}):\n${error}\n\n` +
+-    `⚠ NOTE: If optional dependencies are disabled, you may need ` +
+-    `to add ${pkg} as an explicit dependency.\n`
+-  );
++  // [thai-id-card-agent patch] Fallback for `bun build --compile` standalone
++  // executables. The bundler can't follow this dynamic require(), so the .node
++  // addon isn't embedded. Resolve it instead from a node_modules folder shipped
++  // next to the executable (staged by scripts/build.ts). The normal `bun run`
++  // path never reaches here because the first require() above succeeds.
++  try {
++    const path = require("node:path");
++    const { createRequire } = require("node:module");
++    const exeDir = path.dirname(process.execPath);
++    // Native .node addons must be dlopen'd from a real file path. In a
++    // compiled binary the bare-specifier resolver only sees the embedded FS,
++    // so build the absolute path to the prebuilt addon shipped beside the exe
++    // (scripts/build.ts stages node_modules/@pcsc-mini/<variant>/addon.node)
++    // and require it directly.
++    const addonPath = path.join(exeDir, "node_modules", pkg, "addon.node");
++    const exeRequire = createRequire(path.join(exeDir, "noop.js"));
++    module.exports = exeRequire(addonPath);
++  } catch (fallbackError) {
++    throw new Error(
++      `Required addon dependency not found (${pkg}):\n${error}\n\n` +
++      `Fallback next to the executable (${process.execPath}) also failed:\n` +
++      `${fallbackError}\n\n` +
++      `⚠ NOTE: If optional dependencies are disabled, you may need ` +
++      `to add ${pkg} as an explicit dependency.\n`
++    );
++  }
+ }
+ 
+ function detectAbi() {
