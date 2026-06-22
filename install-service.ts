@@ -71,10 +71,13 @@ svc.on("install", () => {
 });
 
 svc.on("alreadyinstalled", () => {
+  // Upgrade path: the installer stops the service and overwrites agent.js, then
+  // runs this script. The service already exists, so (re)start it to pick up the
+  // new code instead of leaving it stopped.
   console.log(
-    `ℹ️ Service "${SERVICE_NAME}" ถูกติดตั้งอยู่แล้ว ` +
-      `(ถ้าต้องการติดตั้งใหม่ ให้รัน uninstall-service ก่อน)`,
+    `ℹ️ Service "${SERVICE_NAME}" ติดตั้งอยู่แล้ว - กำลังรีสตาร์ตเพื่อใช้เวอร์ชันใหม่...`,
   );
+  svc.start();
 });
 
 svc.on("start", () => {

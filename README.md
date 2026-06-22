@@ -121,6 +121,22 @@ curl "http://127.0.0.1:9001/data?readerName=ACS%20ACR39U%201"
 ["Alcorlink USB Smart Card Reader 0", "ACS ACR39U 1"]
 ```
 
+### `GET /readers/details`
+เหมือน `/readers` แต่เพิ่มข้อมูล **ยี่ห้อชิป + VID/PID** (อ่านจาก USB descriptor ของ Windows)
+เพื่อให้แยกเครื่องอ่านที่ชื่อ PC/SC ซ้ำกันได้ — ให้เว็บโชว์ `label` แต่ส่ง `name` ไปที่ `/data`
+```json
+[
+  { "name": "Generic EMV Smartcard Reader 0", "vendor": "Alcor Micro",
+    "vid": "058F", "pid": "9540", "usb": "EMV Smartcard Reader",
+    "label": "Alcor Micro · EMV Smartcard Reader 0" },
+  { "name": "Generic Smart Card Reader Interface 0", "vendor": "Realtek",
+    "vid": "0BDA", "pid": "0165", "usb": "Smart Card Reader Interface",
+    "label": "Realtek · Smart Card Reader Interface 0" }
+]
+```
+> ⚠️ ดึงได้แค่ **ยี่ห้อชิป** (จาก VID) ไม่ใช่ยี่ห้อที่พิมพ์ข้างกล่อง — เครื่องอ่านคนละแบรนด์ที่ใช้
+> ชิปเดียวกัน (เช่น Alcor Micro AU9540) จะได้ vendor/VID/PID เหมือนกัน แยกได้ด้วยเลข index ท้ายชื่อ
+
 ### `GET /data?readerName=<name>`
 - ถ้ามีเครื่องอ่านเพียงตัวเดียว สามารถละ `readerName` ได้
 - ตัวอย่างผลลัพธ์ (ค่าตัวอย่าง):
@@ -307,9 +323,18 @@ dist-bundle/
 - บัตรเก็บวันที่เป็น **พ.ศ.** (`YYYYMMDD`) — agent คืนทั้ง `be` (พ.ศ.) และ `iso` (ค.ศ. = พ.ศ. − 543)
 
 ### เว็บเรียกไม่ได้ (CORS / mixed content)
-- agent ตั้ง CORS = `*` อยู่แล้ว (ปรับได้ด้วย env `THAI_ID_AGENT_CORS_ORIGIN`)
+- agent **สะท้อน Origin ของผู้เรียกกลับ** (ไม่ใช่ `*`) และส่ง `Access-Control-Allow-Credentials: true`
+  ให้อัตโนมัติ → รองรับทั้งการเรียกแบบมี cookie/credentials และไม่มี จากทุกโดเมน
+  (จำกัดได้ด้วย env `THAI_ID_AGENT_CORS_ORIGIN=https://a.com,https://b.com`)
+- ⚠️ ถ้ายังติด CORS หลังอัปเดต ให้เช็กว่า service รันโค้ดเวอร์ชันใหม่แล้ว (ติดตั้ง installer ตัวล่าสุดทับ)
 - ถ้าเว็บเป็น **https** บางเบราว์เซอร์บล็อกการเรียก `http://localhost` (mixed content) —
   พิจารณาทำ reverse proxy/หรือใช้ใบรับรองสำหรับ localhost
+
+### เสียบเครื่องอ่านกลับเข้าไปแล้วไม่เจอ (หลังถอดออกจนหมด)
+- เวอร์ชันใหม่มี watchdog: ถ้าไม่มีเครื่องอ่านเหลือเลย จะ re-scan ใหม่ทุก ~2.5 วินาที
+  → เสียบกลับแล้วจะเจอเองภายในไม่กี่วินาที (อัปเดต installer ตัวล่าสุดถ้ายังเป็นของเดิม)
+- ⚠️ Windows อาจ**เปลี่ยนชื่อเครื่องอ่าน**หลังถอด-เสียบ (เช่น `...Reader 0` → `...Reader 1`)
+  ฝั่งเว็บจึงควรเรียก `GET /readers` เพื่อเอาชื่อล่าสุดทุกครั้ง อย่า hardcode ชื่อไว้
 
 ### Antivirus / Firewall
 - บางตัวอาจเตือน exe ที่ build จาก Bun หรือบล็อกพอร์ต — อนุญาต `bun.exe` / พอร์ต 9001 (loopback)
