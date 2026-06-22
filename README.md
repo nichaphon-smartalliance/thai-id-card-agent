@@ -141,31 +141,39 @@ curl "http://127.0.0.1:9001/data?readerName=ACS%20ACR39U%201"
 - ถ้ามีเครื่องอ่านเพียงตัวเดียว สามารถละ `readerName` ได้
 - ตัวอย่างผลลัพธ์ (ค่าตัวอย่าง):
 
+คืน **flat object** ตรงตามรูปแบบที่ frontend smartalliance/DOPA ใช้ (มีทั้งค่า `*Raw` ดิบและ
+ค่าจัดรูปแบบแล้ว, วันที่เป็น พ.ศ. คั่นด้วย `-`):
+
 ```json
 {
-  "success": true,
-  "readerName": "ACS ACR39U 1",
+  "version": "0003",
   "pid": "1234567890123",
-  "titleTH": "นาย",
-  "firstNameTH": "สมชาย",
-  "middleNameTH": "",
-  "lastNameTH": "ใจดี",
+  "fullNameTHRaw": "นาย#สมชาย##ใจดี",
   "fullNameTH": "นาย สมชาย ใจดี",
-  "titleEN": "Mr.",
-  "firstNameEN": "Somchai",
-  "middleNameEN": "",
-  "lastNameEN": "Jaidee",
+  "fullNameENRaw": "Mr.#Somchai##Jaidee",
   "fullNameEN": "Mr. Somchai Jaidee",
-  "dateOfBirth": { "be": "2530-01-15", "iso": "1987-01-15", "raw": "25300115" },
-  "gender": "male",
-  "genderCode": 1,
-  "address": "99 หมู่ที่ 1 ตำบลในเมือง อำเภอเมือง จังหวัดขอนแก่น",
-  "issuer": "อำเภอเมืองขอนแก่น/ขอนแก่น",
-  "issueDate": { "be": "2562-03-29", "iso": "2019-03-29", "raw": "25620329" },
-  "expireDate": { "be": "2570-08-25", "iso": "2027-08-25", "raw": "25700825" },
+  "birthDateRaw": "25300115",
+  "birthDate": "2530-01-15",
+  "genderCode": "1",
+  "genderText": "ชาย",
+  "cardOrRequestNo": "35014196304/03291314",
+  "issuerOrg": "อำเภอเมืองขอนแก่น/ขอนแก่น",
+  "issuerCode": "3340100007599",
+  "issueDateRaw": "25620329",
+  "issueDate": "2562-03-29",
+  "expiryDateRaw": "25700825",
+  "expiryDate": "2570-08-25",
+  "cardTypeCode": "01",
+  "addressRaw": "99#หมู่ที่ 1##ตำบลในเมือง#อำเภอเมือง#จังหวัดขอนแก่น",
+  "addressText": "99 หมู่ที่ 1 ตำบลในเมือง อำเภอเมือง จังหวัดขอนแก่น",
+  "underPhotoNumber": "35010303291314",
   "photoBase64": "/9j/4AAQSkZJRgABAQEAYABgAAD/2wBD..."
 }
 ```
+
+> field offset บนบัตร (ตรวจสอบกับบัตรจริงแล้ว) อยู่ใน [`src/apdu.ts`](src/apdu.ts) ·
+> `version` อ่านจาก offset 0x00, `cardOrRequestNo` 0xE2, `issuerCode` 0x15A,
+> `cardTypeCode` 0x177, `address` 0x1579, `underPhotoNumber` 0x1619
 
 ค่า error (เช่น ไม่พบบัตร):
 ```json

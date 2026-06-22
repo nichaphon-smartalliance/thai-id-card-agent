@@ -125,7 +125,9 @@ export function createApp(manager: ReaderManager): Hono {
 
     try {
       const data = await manager.readData(readerName);
-      return c.json({ success: true, readerName, ...data });
+      // Return the flat card object exactly (no wrapper) to match the format
+      // the smartalliance/DOPA frontend expects.
+      return c.json(data);
     } catch (err) {
       if (err instanceof AgentError) {
         return c.json({ success: false, error: err.message }, err.status as 400);

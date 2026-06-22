@@ -5,7 +5,7 @@
  * binary works in dev, as a Windows Service, and inside an installer.
  */
 
-export const VERSION = "1.1.0";
+export const VERSION = "1.2.0";
 
 export const SERVICE_NAME = "ThaiIDCardAgent";
 

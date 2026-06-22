@@ -1,7 +1,7 @@
 /**
  * Reads every supported field from an already-connected Thai ID card and
- * returns a clean JSON object (Thai text decoded, dates normalised, photo as
- * base64). Talks to the card only through the APDU helper.
+ * returns a flat JSON object matching the format consumed by the
+ * smartalliance / DOPA web frontend (Raw + formatted variants per field).
  */
 
 import {
@@ -14,82 +14,63 @@ import {
 import { decodeAscii, decodeTIS620 } from "./encoding";
 import { CONFIG } from "./config";
 
-export interface ThaiIdDate {
-  /** Buddhist-era as stored on the card, e.g. "2520-11-08". null if blank. */
-  be: string | null;
-  /** Gregorian ISO date, e.g. "1977-11-08". null if blank / partial. */
-  iso: string | null;
-  /** Raw 8-char string from the card (YYYYMMDD, BE), for debugging. */
-  raw: string;
-}
-
 export interface ThaiIdCardData {
+  version: string;
   pid: string;
 
-  titleTH: string;
-  firstNameTH: string;
-  middleNameTH: string;
-  lastNameTH: string;
+  fullNameTHRaw: string;
   fullNameTH: string;
-
-  titleEN: string;
-  firstNameEN: string;
-  middleNameEN: string;
-  lastNameEN: string;
+  fullNameENRaw: string;
   fullNameEN: string;
 
-  dateOfBirth: ThaiIdDate;
-  gender: "male" | "female" | "unknown";
-  genderCode: number | null;
+  birthDateRaw: string;
+  birthDate: string;
 
-  address: string;
+  genderCode: string;
+  genderText: string;
 
-  issuer: string;
-  issueDate: ThaiIdDate;
-  expireDate: ThaiIdDate;
+  cardOrRequestNo: string;
+  issuerOrg: string;
+  issuerCode: string;
+
+  issueDateRaw: string;
+  issueDate: string;
+  expiryDateRaw: string;
+  expiryDate: string;
+
+  cardTypeCode: string;
+
+  addressRaw: string;
+  addressText: string;
+
+  underPhotoNumber: string;
 
   /** Base64 JPEG. Prefixed with a data URI when THAI_ID_AGENT_PHOTO_DATA_URI=1. */
   photoBase64: string;
 }
 
-const pad2 = (n: number) => String(n).padStart(2, "0");
+/** Trim trailing spaces and '#' padding while keeping internal separators. */
+const trimRaw = (s: string) => s.replace(/[\s#]+$/u, "");
 
-/** Convert the card's `YYYYMMDD` Buddhist-era date into a normalised object. */
-function parseThaiDate(raw: string): ThaiIdDate {
-  const s = raw.trim();
-  if (s.length !== 8 || s === "00000000") {
-    return { be: null, iso: null, raw: s };
-  }
-  const yearBE = Number(s.slice(0, 4));
-  const month = Number(s.slice(4, 6));
-  const day = Number(s.slice(6, 8));
-  const yearCE = yearBE - 543;
-
-  const be = `${yearBE}-${pad2(month)}-${pad2(day)}`;
-  // Some cards legitimately store 00 for an unknown month/day.
-  const iso =
-    month >= 1 && month <= 12 && day >= 1 && day <= 31
-      ? `${yearCE}-${pad2(month)}-${pad2(day)}`
-      : null;
-
-  return { be, iso, raw: s };
-}
-
-/** Card name fields are `title#first#middle#last`, padded with spaces. */
-function parseName(raw: string) {
-  const parts = raw.split("#").map((p) => p.trim());
-  const [title = "", first = "", middle = "", last = ""] = parts;
-  const full = [title, first, middle, last].filter(Boolean).join(" ");
-  return { title, first, middle, last, full };
-}
-
-/** Address fields are also `#`-separated; join the non-empty pieces. */
-function parseAddress(raw: string): string {
-  return raw
+/** Join the non-empty '#'-separated segments with single spaces. */
+const joinSegments = (s: string) =>
+  s
     .split("#")
     .map((p) => p.trim())
     .filter(Boolean)
     .join(" ");
+
+/** Insert dashes into an 8-char Buddhist-era YYYYMMDD (kept in BE, e.g. 2543-03-14). */
+function formatBEDate(raw: string): string {
+  const s = raw.trim();
+  if (s.length !== 8 || s === "00000000") return s.trim();
+  return `${s.slice(0, 4)}-${s.slice(4, 6)}-${s.slice(6, 8)}`;
+}
+
+function genderText(code: string): string {
+  if (code === "1") return "ชาย";
+  if (code === "2") return "หญิง";
+  return "";
 }
 
 /** Read and decode the full card. Assumes `card` is already connected. */
@@ -100,19 +81,40 @@ export async function readThaiIdCard(
   await card.transmit(Uint8Array.from(SELECT_APPLET));
 
   // 2. Text / numeric fields.
+  const version = decodeAscii(await transmitRead(card, APDU.VERSION)).trim();
   const pid = decodeAscii(await transmitRead(card, APDU.CID)).trim();
-  const th = parseName(decodeTIS620(await transmitRead(card, APDU.FULLNAME_TH)));
-  const en = parseName(decodeAscii(await transmitRead(card, APDU.FULLNAME_EN)));
-  const dob = parseThaiDate(decodeAscii(await transmitRead(card, APDU.DOB)));
-  const genderRaw = decodeAscii(await transmitRead(card, APDU.GENDER)).trim();
-  const issuer = decodeTIS620(await transmitRead(card, APDU.ISSUER)).trim();
-  const issueDate = parseThaiDate(
-    decodeAscii(await transmitRead(card, APDU.ISSUE_DATE)),
+
+  const fullNameTHRaw = trimRaw(
+    decodeTIS620(await transmitRead(card, APDU.FULLNAME_TH)),
   );
-  const expireDate = parseThaiDate(
-    decodeAscii(await transmitRead(card, APDU.EXPIRE_DATE)),
+  const fullNameENRaw = trimRaw(
+    decodeAscii(await transmitRead(card, APDU.FULLNAME_EN)),
   );
-  const address = parseAddress(decodeTIS620(await transmitRead(card, APDU.ADDRESS)));
+
+  const birthDateRaw = decodeAscii(await transmitRead(card, APDU.DOB)).trim();
+  const genderCode = decodeAscii(await transmitRead(card, APDU.GENDER)).trim();
+  const cardOrRequestNo = decodeAscii(
+    await transmitRead(card, APDU.CARD_REQUEST_NO),
+  ).trim();
+  const issuerOrg = decodeTIS620(await transmitRead(card, APDU.ISSUER)).trim();
+  const issuerCode = decodeAscii(
+    await transmitRead(card, APDU.ISSUER_CODE),
+  ).trim();
+  const issueDateRaw = decodeAscii(
+    await transmitRead(card, APDU.ISSUE_DATE),
+  ).trim();
+  const expiryDateRaw = decodeAscii(
+    await transmitRead(card, APDU.EXPIRE_DATE),
+  ).trim();
+  const cardTypeCode = decodeAscii(
+    await transmitRead(card, APDU.CARD_TYPE),
+  ).trim();
+  const addressRaw = trimRaw(
+    decodeTIS620(await transmitRead(card, APDU.ADDRESS)),
+  );
+  const underPhotoNumber = decodeAscii(
+    await transmitRead(card, APDU.UNDER_PHOTO_NO),
+  ).trim();
 
   // 3. Photo - 20 segments concatenated into a single JPEG.
   const segments: Uint8Array[] = [];
@@ -133,29 +135,28 @@ export async function readThaiIdCard(
     ? `data:image/jpeg;base64,${base64}`
     : base64;
 
-  const genderCode = genderRaw ? Number(genderRaw) : null;
-  const gender =
-    genderCode === 1 ? "male" : genderCode === 2 ? "female" : "unknown";
-
   return {
+    version,
     pid,
-    titleTH: th.title,
-    firstNameTH: th.first,
-    middleNameTH: th.middle,
-    lastNameTH: th.last,
-    fullNameTH: th.full,
-    titleEN: en.title,
-    firstNameEN: en.first,
-    middleNameEN: en.middle,
-    lastNameEN: en.last,
-    fullNameEN: en.full,
-    dateOfBirth: dob,
-    gender,
+    fullNameTHRaw,
+    fullNameTH: joinSegments(fullNameTHRaw),
+    fullNameENRaw,
+    fullNameEN: joinSegments(fullNameENRaw),
+    birthDateRaw,
+    birthDate: formatBEDate(birthDateRaw),
     genderCode,
-    address,
-    issuer,
-    issueDate,
-    expireDate,
+    genderText: genderText(genderCode),
+    cardOrRequestNo,
+    issuerOrg,
+    issuerCode,
+    issueDateRaw,
+    issueDate: formatBEDate(issueDateRaw),
+    expiryDateRaw,
+    expiryDate: formatBEDate(expiryDateRaw),
+    cardTypeCode,
+    addressRaw,
+    addressText: joinSegments(addressRaw),
+    underPhotoNumber,
     photoBase64,
   };
 }

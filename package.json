@@ -1,6 +1,6 @@
 {
   "name": "thai-id-card-agent",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Thai ID Card Local Agent - Local HTTP server (Bun + Hono) that reads Thai national ID smart cards over PC/SC and serves the data on http://localhost:9001. Runs as a Windows Service.",
   "type": "module",
   "private": true,
