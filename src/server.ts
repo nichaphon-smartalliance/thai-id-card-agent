@@ -33,6 +33,19 @@ export function createApp(manager: ReaderManager): Hono {
       ? null
       : CONFIG.corsOrigin.split(",").map((o) => o.trim());
 
+  // Chrome "Private Network Access": when a PUBLIC site (https://...) calls a
+  // PRIVATE address (localhost/127.0.0.1), Chrome sends a preflight carrying
+  // `Access-Control-Request-Private-Network: true` and BLOCKS the request as a
+  // CORS error unless the response echoes `Access-Control-Allow-Private-Network:
+  // true`. Hono's cors() doesn't add this, so we do it here (runs before cors,
+  // so the header is present on the 204 preflight response it returns).
+  app.use("*", async (c, next) => {
+    if (c.req.header("Access-Control-Request-Private-Network")) {
+      c.header("Access-Control-Allow-Private-Network", "true");
+    }
+    await next();
+  });
+
   app.use(
     "*",
     cors({
