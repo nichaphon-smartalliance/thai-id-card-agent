@@ -114,6 +114,7 @@ dist
 
 # Thai ID Card Agent build / service artifacts
 dist/
+dist-bundle/
 dist-installer/
 # node-windows creates this at service-install time
 daemon/

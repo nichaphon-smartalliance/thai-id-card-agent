@@ -1,27 +1,26 @@
-; ============================================================================
-;  Inno Setup script - Thai ID Card Agent
-;  Builds ThaiIDCardAgent-Setup.exe which installs the agent and registers it
-;  as an auto-start Windows Service named "ThaiIDCardAgent".
+﻿; ============================================================================
+;  Inno Setup script - Thai ID Card Agent  (SELF-CONTAINED installer)
 ;
-;  HOW IT WORKS
-;    The agent runs on the Bun runtime (the `bun build --compile` single exe
-;    currently crashes loading the PC/SC native addon - a Bun bug; see README).
-;    So this installer ships the project + node_modules and registers the
-;    service with `bun run install-service.ts` (node-windows under the hood,
-;    which correctly implements the Windows Service Control Manager protocol).
+;  Produces ThaiIDCardAgent-Setup.exe. The customer just double-clicks it -
+;  NOTHING needs to be pre-installed (the Bun runtime is bundled inside).
 ;
-;  PREREQUISITES (on the TARGET machine)
-;    - Bun must be installed and on PATH  ->  https://bun.sh
-;      (the installer checks for it and warns if missing)
+;  WHAT IT DOES
+;    - Copies the app + bundled bun.exe + node_modules to Program Files.
+;    - Registers an auto-start Windows Service named "ThaiIDCardAgent" that
+;      runs `bun.exe agent.js` (via node-windows / WinSW, which handles the
+;      Windows Service Control Manager protocol correctly).
+;    - On uninstall, stops + removes the service.
 ;
-;  BUILD THE INSTALLER
-;    1. Install Inno Setup 6+        ->  https://jrsoftware.org/isdl.php
-;    2. From the project root, make sure dependencies are installed:
-;           bun install
-;    3. Compile this script:
-;           "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer.iss
-;       (or open installer.iss in the Inno Setup IDE and press F9)
-;    4. Output: dist-installer\ThaiIDCardAgent-Setup.exe
+;    The agent listens on http://127.0.0.1:9001  (GET /readers, GET /data).
+;
+;  HOW TO BUILD THIS INSTALLER (on YOUR dev machine, which has Bun)
+;    1. bun install
+;    2. bun run package          ->  creates dist-bundle\ (app + bun.exe + deps)
+;    3. Install Inno Setup 6+    ->  https://jrsoftware.org/isdl.php
+;    4. Compile:
+;         & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer.iss
+;       (or open in the Inno Setup IDE and press F9)
+;    5. Output: dist-installer\ThaiIDCardAgent-Setup.exe   <- ship this file
 ; ============================================================================
 
 #define MyAppName "Thai ID Card Agent"
@@ -30,71 +29,74 @@
 #define MyServiceName "ThaiIDCardAgent"
 
 [Setup]
-AppId={{B8B6F2A1-9C2E-4E2A-9A1B-THAIIDCARD001}
+AppId={{7A3D2E1C-9B4F-4C8A-A1D6-2E5F8C0B9A41}
 AppName={#MyAppName}
 AppVersion={#MyAppVersion}
 AppPublisher={#MyAppPublisher}
 DefaultDirName={autopf}\ThaiIDCardAgent
 DefaultGroupName={#MyAppName}
 DisableProgramGroupPage=yes
-; Service install requires administrative rights.
+; Registering a service requires administrator rights.
 PrivilegesRequired=admin
 OutputDir=dist-installer
 OutputBaseFilename=ThaiIDCardAgent-Setup
-Compression=lzma2
+Compression=lzma2/max
 SolidCompression=yes
 WizardStyle=modern
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
+UninstallDisplayName={#MyAppName}
 
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"
 
 [Files]
-; --- Application source + runtime dependencies (run on the Bun runtime) ---
-Source: "src\*";               DestDir: "{app}\src";          Flags: recursesubdirs createallsubdirs ignoreversion
-Source: "node_modules\*";      DestDir: "{app}\node_modules"; Flags: recursesubdirs createallsubdirs ignoreversion
-Source: "patches\*";           DestDir: "{app}\patches";      Flags: recursesubdirs createallsubdirs ignoreversion
-Source: "install-service.ts";  DestDir: "{app}"; Flags: ignoreversion
-Source: "uninstall-service.ts";DestDir: "{app}"; Flags: ignoreversion
-Source: "package.json";        DestDir: "{app}"; Flags: ignoreversion
-Source: "bunfig.toml";         DestDir: "{app}"; Flags: ignoreversion
-Source: "tsconfig.json";       DestDir: "{app}"; Flags: ignoreversion
-Source: "README.md";           DestDir: "{app}"; Flags: ignoreversion isreadme
+; Everything the agent needs is staged in dist-bundle by `bun run package`
+; (app, bundled bun.exe, node_modules, service scripts, patch, user-guide.html).
+Source: "dist-bundle\*"; DestDir: "{app}"; Flags: recursesubdirs createallsubdirs ignoreversion
+
+[Icons]
+; Start Menu shortcut that opens the Thai user manual in the default browser.
+Name: "{group}\คู่มือการใช้งาน"; Filename: "{app}\user-guide.html"; \
+  Comment: "เปิดคู่มือการใช้งาน Thai ID Card Agent"
+; Handy uninstall entry in the same Start Menu group.
+Name: "{group}\ถอนการติดตั้ง Thai ID Card Agent"; Filename: "{uninstallexe}"
 
 [Run]
-; Register + start the Windows Service after files are copied.
-Filename: "{cmd}"; Parameters: "/C bun run install-service.ts"; WorkingDir: "{app}"; \
-  StatusMsg: "Registering ThaiIDCardAgent Windows Service..."; Flags: runhidden waituntilterminated
+; Offer to open the user manual right after install finishes.
+Filename: "{app}\user-guide.html"; Description: "เปิดคู่มือการใช้งาน"; \
+  Flags: postinstall shellexec skipifsilent
+; Register + start the Windows Service, using the BUNDLED bun.exe so the
+; service runs on our shipped runtime (no system Bun required).
+Filename: "{app}\bun.exe"; Parameters: "run install-service.ts"; WorkingDir: "{app}"; \
+  StatusMsg: "Registering ThaiIDCardAgent Windows Service..."; \
+  Flags: runhidden waituntilterminated
+
+; Offer to open the agent's health endpoint after install.
+Filename: "http://127.0.0.1:9001/readers"; Description: "Open agent (http://localhost:9001)"; \
+  Flags: postinstall shellexec skipifsilent
 
 [UninstallRun]
 ; Stop + remove the service before files are deleted.
-Filename: "{cmd}"; Parameters: "/C bun run uninstall-service.ts"; WorkingDir: "{app}"; \
+Filename: "{app}\bun.exe"; Parameters: "run uninstall-service.ts"; WorkingDir: "{app}"; \
   RunOnceId: "RemoveThaiIDCardService"; Flags: runhidden waituntilterminated
 
 [UninstallDelete]
-; node-windows creates a daemon\ folder at runtime - clean it up.
+; node-windows writes a daemon\ folder (WinSW wrapper + logs) at runtime.
 Type: filesandordirs; Name: "{app}\daemon"
 
 [Code]
-{ Verify Bun is available on PATH before installing, since the service runs it. }
-function BunOnPath(): Boolean;
+{ Best-effort: ensure any previous install of the service is gone before
+  re-installing, so re-running the setup doesn't hit "already installed". }
+procedure CurStepChanged(CurStep: TSetupStep);
 var
   ResultCode: Integer;
 begin
-  Result := Exec('cmd.exe', '/C where bun', '', SW_HIDE, ewWaitUntilTerminated, ResultCode)
-            and (ResultCode = 0);
-end;
-
-function InitializeSetup(): Boolean;
-begin
-  Result := True;
-  if not BunOnPath() then
+  if CurStep = ssInstall then
   begin
-    if MsgBox('ไม่พบ Bun runtime บนเครื่องนี้ (จำเป็นต้องใช้รัน ThaiIDCardAgent).' + #13#10 +
-              'กรุณาติดตั้ง Bun จาก https://bun.sh แล้วเปิด installer อีกครั้ง.' + #13#10#13#10 +
-              'ต้องการดำเนินการต่อโดยไม่ตรวจสอบหรือไม่?',
-              mbConfirmation, MB_YESNO) = IDNO then
-      Result := False;
+    if Exec('sc.exe', 'query {#MyServiceName}', '', SW_HIDE, ewWaitUntilTerminated, ResultCode) and (ResultCode = 0) then
+    begin
+      Exec('sc.exe', 'stop {#MyServiceName}', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+    end;
   end;
 end;

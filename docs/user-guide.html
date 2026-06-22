@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Thai ID Card Agent — คู่มือการใช้งาน</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Trirong:wght@500;600;700&family=IBM+Plex+Sans+Thai:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --teal-900: #0c2f30;
+    --teal-700: #11484a;
+    --teal-500: #1c6e6f;
+    --gold:     #c8a24c;
+    --gold-deep:#9c7726;
+    --cream:    #f7f1e3;
+    --paper:    #fcf8ee;
+    --ink:      #1b2a2a;
+    --ink-soft: #4a5a59;
+    --line:     #e4dcc6;
+    --live:     #2f9e6f;
+    --danger:   #b4532f;
+    --shadow:   24px 24px 60px rgba(12,47,48,.10);
+    --r:        18px;
+  }
+
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    font-family: "IBM Plex Sans Thai", system-ui, sans-serif;
+    color: var(--ink);
+    background:
+      radial-gradient(120% 90% at 100% -10%, rgba(200,162,76,.13), transparent 55%),
+      radial-gradient(100% 80% at -10% 0%, rgba(28,110,111,.10), transparent 50%),
+      var(--paper);
+    line-height: 1.7;
+    font-weight: 300;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+
+  /* fine security-document line texture overlay */
+  body::before {
+    content: "";
+    position: fixed; inset: 0; z-index: 0; pointer-events: none;
+    background-image: repeating-linear-gradient(135deg, rgba(12,47,48,.025) 0 1px, transparent 1px 7px);
+    mix-blend-mode: multiply;
+  }
+
+  /* scroll progress bar */
+  .progress {
+    position: fixed; top: 0; left: 0; height: 4px; width: 100%;
+    transform-origin: 0 50%; transform: scaleX(0); z-index: 100;
+    background: linear-gradient(90deg, var(--gold), var(--teal-500));
+    animation: grow linear; animation-timeline: scroll(root);
+  }
+  @keyframes grow { to { transform: scaleX(1); } }
+
+  .wrap { position: relative; z-index: 1; max-width: 1080px; margin: 0 auto; padding: 0 28px; }
+
+  h1, h2, h3 { font-family: "Trirong", serif; font-weight: 600; line-height: 1.25; letter-spacing: .2px; }
+  .mono { font-family: "IBM Plex Mono", monospace; }
+  code, .chip-code {
+    font-family: "IBM Plex Mono", monospace; font-size: .86em;
+    background: rgba(12,47,48,.06); color: var(--teal-700);
+    padding: .12em .5em; border-radius: 6px; border: 1px solid var(--line);
+    white-space: nowrap;
+  }
+
+  /* ---------- HERO ---------- */
+  header.hero {
+    position: relative; overflow: hidden;
+    background:
+      radial-gradient(140% 120% at 85% -20%, rgba(200,162,76,.22), transparent 45%),
+      linear-gradient(165deg, var(--teal-900), var(--teal-700) 60%, #0d3636);
+    color: #f5efe0;
+  }
+  header.hero::after { /* guilloché rosette */
+    content: ""; position: absolute; right: -180px; top: -160px; width: 620px; height: 620px;
+    background:
+      repeating-radial-gradient(circle at center, rgba(200,162,76,.16) 0 1.5px, transparent 1.5px 13px),
+      repeating-radial-gradient(circle at center, rgba(245,239,224,.06) 0 1px, transparent 1px 22px);
+    border-radius: 50%; opacity: .55; pointer-events: none;
+  }
+  .hero-grid {
+    position: relative; z-index: 2; display: grid; grid-template-columns: 1.15fr .85fr;
+    gap: 40px; align-items: center; padding: 70px 0 84px;
+  }
+  .eyebrow {
+    display: inline-flex; align-items: center; gap: 9px;
+    font-size: .76rem; letter-spacing: .28em; text-transform: uppercase;
+    color: var(--gold); font-weight: 600; margin-bottom: 22px;
+  }
+  .eyebrow::before { content: ""; width: 30px; height: 1px; background: var(--gold); display: inline-block; }
+  header.hero h1 {
+    color: #fdfaf2; font-size: clamp(2.3rem, 5vw, 3.5rem); margin: 0 0 18px;
+    font-weight: 700;
+  }
+  header.hero h1 .accent { color: var(--gold); font-style: italic; }
+  .lede { font-size: 1.12rem; color: #d9e3df; max-width: 30em; font-weight: 300; }
+  .hero-badges { display: flex; gap: 12px; margin-top: 30px; flex-wrap: wrap; }
+  .badge {
+    font-size: .82rem; padding: 7px 15px; border-radius: 100px;
+    border: 1px solid rgba(245,239,224,.28); color: #efe9da; backdrop-filter: blur(4px);
+    display: inline-flex; align-items: center; gap: 7px;
+  }
+  .badge .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--live); box-shadow: 0 0 0 0 rgba(47,158,111,.6); animation: pulse 2s infinite; }
+  @keyframes pulse { 0%{box-shadow:0 0 0 0 rgba(47,158,111,.55)} 70%{box-shadow:0 0 0 9px rgba(47,158,111,0)} 100%{box-shadow:0 0 0 0 rgba(47,158,111,0)} }
+
+  /* ID card mockup */
+  .idcard {
+    position: relative; aspect-ratio: 1.586; border-radius: 16px; padding: 22px;
+    background: linear-gradient(135deg, #e9f3ef 0%, #cfe3dd 45%, #bcd6cf 100%);
+    box-shadow: 0 30px 60px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.6);
+    transform: rotate(4deg) translateY(0); color: var(--teal-900);
+    overflow: hidden; animation: floatcard 7s ease-in-out infinite;
+  }
+  @keyframes floatcard { 0%,100%{transform:rotate(4deg) translateY(0)} 50%{transform:rotate(4deg) translateY(-12px)} }
+  .idcard::before { content:""; position:absolute; inset:0;
+    background: repeating-radial-gradient(circle at 30% 120%, rgba(28,110,111,.10) 0 1px, transparent 1px 11px); opacity:.7; }
+  .idcard .garuda { position:absolute; right:16px; top:14px; font-size:.62rem; letter-spacing:.12em; color:var(--gold-deep); font-weight:600; }
+  .idcard .row { position: relative; display:flex; gap:14px; align-items:flex-start; }
+  .chip {
+    width: 46px; height: 36px; border-radius: 7px;
+    background: linear-gradient(135deg,#e7c977,#bb8e34); position: relative; flex: none;
+    box-shadow: inset 0 0 0 1px rgba(120,86,20,.5);
+  }
+  .chip::before,.chip::after{ content:""; position:absolute; background:rgba(120,86,20,.55); }
+  .chip::before{ left:0; right:0; top:50%; height:1.5px; }
+  .chip::after{ top:0; bottom:0; left:50%; width:1.5px; }
+  .photo { width: 58px; height: 70px; border-radius:6px; background: linear-gradient(160deg,#9fb9b2,#6d8b84); flex:none; box-shadow: inset 0 0 0 1px rgba(255,255,255,.4); }
+  .idlines { flex:1; padding-top:4px; }
+  .idlines span { display:block; height:7px; border-radius:4px; background:rgba(12,47,48,.18); margin-bottom:8px; }
+  .idlines span:nth-child(1){ width:75%; background:rgba(12,47,48,.32); height:9px;}
+  .idlines span:nth-child(2){ width:55%; }
+  .idlines span:nth-child(3){ width:64%; }
+  .idcard .pid { position:absolute; left:22px; bottom:18px; font-family:"IBM Plex Mono",monospace; font-size:.74rem; letter-spacing:.18em; color:var(--teal-900); opacity:.7; }
+
+  /* ---------- SECTIONS ---------- */
+  main { padding: 0 0 40px; }
+  section { padding: 64px 0 8px; }
+  .kicker { color: var(--gold-deep); font-weight: 600; letter-spacing: .18em; text-transform: uppercase; font-size: .76rem; margin-bottom: 10px; }
+  section > .wrap > h2 { font-size: clamp(1.7rem, 3.4vw, 2.3rem); margin: 0 0 8px; color: var(--teal-900); }
+  .section-intro { color: var(--ink-soft); max-width: 46em; margin: 0 0 34px; }
+
+  .reveal { opacity: 0; transform: translateY(18px); animation: rise .7s cubic-bezier(.2,.7,.2,1) forwards; }
+  @keyframes rise { to { opacity: 1; transform: none; } }
+
+  /* feature cards */
+  .features { display: grid; grid-template-columns: repeat(3,1fr); gap: 20px; }
+  .feature {
+    background: rgba(255,255,255,.6); border: 1px solid var(--line); border-radius: var(--r);
+    padding: 26px 24px; box-shadow: var(--shadow); transition: transform .3s, box-shadow .3s;
+  }
+  .feature:hover { transform: translateY(-5px); box-shadow: 18px 26px 50px rgba(12,47,48,.14); }
+  .feature .ic { width:44px;height:44px;border-radius:11px;display:grid;place-items:center;background:linear-gradient(135deg,var(--teal-700),var(--teal-500));margin-bottom:16px; }
+  .feature h3 { margin: 0 0 6px; font-size: 1.18rem; color: var(--teal-900); }
+  .feature p { margin: 0; color: var(--ink-soft); font-size: .96rem; }
+
+  /* requirement chips */
+  .req { display:grid; grid-template-columns: repeat(3,1fr); gap:18px; }
+  .req .item { display:flex; gap:14px; align-items:flex-start; padding:20px; border:1px dashed var(--line); border-radius:14px; background:rgba(255,255,255,.45); }
+  .req .item b { color: var(--teal-900); font-weight:600; }
+  .req .item small { color: var(--ink-soft); }
+  .req .num { font-family:"Trirong",serif; }
+
+  /* step cards */
+  .steps { display:flex; flex-direction:column; gap:22px; counter-reset: step; }
+  .step {
+    display:grid; grid-template-columns: 92px 1fr; gap:26px; align-items:center;
+    background: linear-gradient(120deg, rgba(255,255,255,.75), rgba(247,241,227,.5));
+    border:1px solid var(--line); border-radius: var(--r); padding:28px 30px;
+    box-shadow: var(--shadow); position:relative; overflow:hidden;
+  }
+  .step::before { counter-increment: step; content: counter(step,decimal-leading-zero);
+    font-family:"Trirong",serif; font-size: 3.2rem; font-weight:700; color: var(--gold);
+    line-height:1; opacity:.95; }
+  .step h3 { margin:0 0 5px; font-size:1.3rem; color:var(--teal-900); }
+  .step p { margin:0; color:var(--ink-soft); }
+  .step .tag { position:absolute; top:16px; right:18px; font-size:.7rem; letter-spacing:.12em; text-transform:uppercase; color:var(--gold-deep); font-weight:600; }
+
+  /* verify / live demo card */
+  .panel {
+    background: var(--teal-900); color:#eef3f0; border-radius: var(--r); padding: 30px 32px;
+    box-shadow: var(--shadow); position:relative; overflow:hidden;
+  }
+  .panel::after{ content:""; position:absolute; right:-120px; bottom:-120px; width:340px; height:340px; border-radius:50%;
+    background: repeating-radial-gradient(circle, rgba(200,162,76,.13) 0 1px, transparent 1px 12px); opacity:.5; }
+  .panel h3 { color:#fdfaf2; margin:0 0 14px; }
+  .browser { background:#0a2627; border:1px solid rgba(245,239,224,.16); border-radius:12px; overflow:hidden; margin-top:6px; position:relative; z-index:2; }
+  .browser .bar { display:flex; align-items:center; gap:8px; padding:11px 14px; background:#0e2e2f; border-bottom:1px solid rgba(245,239,224,.1); }
+  .browser .bar i { width:11px;height:11px;border-radius:50%; display:inline-block; }
+  .browser .bar i:nth-child(1){background:#e0664f;} .browser .bar i:nth-child(2){background:#e3b34e;} .browser .bar i:nth-child(3){background:#5bbd7e;}
+  .browser .url { margin-left:10px; font-family:"IBM Plex Mono",monospace; font-size:.8rem; color:#9fc4bf; background:#0a2122; padding:5px 12px; border-radius:7px; flex:1; }
+  .browser .body { padding:18px; font-family:"IBM Plex Mono",monospace; font-size:.84rem; color:#cfe8e1; }
+  .browser .body .k { color: var(--gold); }
+  .browser .body .s { color:#86d6ae; }
+
+  /* data table */
+  .tablewrap { border:1px solid var(--line); border-radius:var(--r); overflow:hidden; box-shadow:var(--shadow); background:#fff; }
+  table { width:100%; border-collapse:collapse; }
+  th, td { text-align:left; padding:14px 20px; border-bottom:1px solid var(--line); font-size:.95rem; }
+  th { background: var(--teal-900); color:#f3eddd; font-family:"IBM Plex Sans Thai",sans-serif; font-weight:600; letter-spacing:.02em; }
+  tr:last-child td { border-bottom:none; }
+  tr:nth-child(even) td { background: rgba(247,241,227,.5); }
+  td .mono { color: var(--teal-700); font-size:.86rem; }
+
+  /* FAQ accordion */
+  .faq { display:flex; flex-direction:column; gap:12px; }
+  details {
+    border:1px solid var(--line); border-radius:14px; background:rgba(255,255,255,.6);
+    padding:0 22px; transition:background .3s; overflow:hidden;
+  }
+  details[open]{ background:#fff; box-shadow: var(--shadow); }
+  summary {
+    cursor:pointer; list-style:none; padding:18px 0; font-weight:500; color:var(--teal-900);
+    display:flex; align-items:center; gap:14px; font-size:1.05rem;
+  }
+  summary::-webkit-details-marker{ display:none; }
+  summary .q { width:26px;height:26px;flex:none;border-radius:8px;background:var(--cream);border:1px solid var(--line);
+    display:grid;place-items:center;color:var(--gold-deep);font-family:"Trirong",serif;font-weight:700;transition:transform .3s; }
+  details[open] summary .q { transform: rotate(90deg); background:var(--gold); color:#fff; }
+  details .a { padding:0 0 20px 40px; color:var(--ink-soft); }
+  details .a code{ white-space:normal; }
+
+  /* callout */
+  .callout {
+    display:grid; grid-template-columns:54px 1fr; gap:20px; align-items:start;
+    background: linear-gradient(120deg, rgba(28,110,111,.08), rgba(200,162,76,.08));
+    border:1px solid var(--line); border-left:4px solid var(--gold); border-radius:14px; padding:24px 26px;
+  }
+  .callout .shield { width:54px;height:54px;border-radius:13px;background:linear-gradient(135deg,var(--teal-700),var(--teal-900));display:grid;place-items:center; }
+  .callout h3{ margin:0 0 6px; color:var(--teal-900); font-size:1.15rem; }
+  .callout p{ margin:0; color:var(--ink-soft); font-size:.96rem; }
+
+  /* uninstall steps inline */
+  .mini { display:grid; grid-template-columns:1fr 1fr; gap:18px; }
+  .mini .card{ background:rgba(255,255,255,.55); border:1px solid var(--line); border-radius:14px; padding:22px 24px; }
+  .mini .card h4{ margin:0 0 8px; font-family:"Trirong",serif; color:var(--teal-900); font-size:1.12rem; }
+  .mini .card p{ margin:0; color:var(--ink-soft); font-size:.94rem; }
+
+  /* footer */
+  footer { margin-top:50px; background:var(--teal-900); color:#cfe0db; padding:46px 0 38px; position:relative; overflow:hidden; }
+  footer::before{ content:""; position:absolute; left:0; right:0; top:0; height:3px; background:linear-gradient(90deg,var(--gold),var(--teal-500)); }
+  footer .frow{ display:flex; justify-content:space-between; align-items:center; gap:24px; flex-wrap:wrap; }
+  footer .logo{ font-family:"Trirong",serif; font-size:1.4rem; color:#fdfaf2; font-weight:600; }
+  footer .logo span{ color:var(--gold); }
+  footer small{ color:#8fb0aa; }
+
+  /* svg icon stroke */
+  .ic svg, .shield svg, .q svg { stroke:#f3eddd; }
+
+  @media (max-width: 820px) {
+    .hero-grid{ grid-template-columns:1fr; gap:30px; padding:48px 0 60px; }
+    .idcard{ max-width:420px; }
+    .features,.req,.mini{ grid-template-columns:1fr; }
+    .step{ grid-template-columns:64px 1fr; gap:16px; padding:22px; }
+    .step::before{ font-size:2.4rem; }
+  }
+
+  @media print {
+    body{ background:#fff; } body::before,.progress,.idcard{ display:none; }
+    .feature,.step,.panel,.tablewrap,details{ box-shadow:none; }
+    header.hero{ color:#000; background:#fff; border-bottom:2px solid var(--gold); }
+    header.hero h1,.lede,.eyebrow{ color:#000 !important; }
+    section{ padding:24px 0; break-inside:avoid; }
+  }
+</style>
+</head>
+<body>
+<div class="progress"></div>
+
+<!-- ================= HERO ================= -->
+<header class="hero">
+  <div class="wrap">
+    <div class="hero-grid">
+      <div class="reveal" style="animation-delay:.05s">
+        <span class="eyebrow">คู่มือการใช้งาน · เวอร์ชัน 1.0</span>
+        <h1>Thai ID Card <span class="accent">Agent</span></h1>
+        <p class="lede">โปรแกรมตัวเล็กที่ทำงานเงียบ ๆ อยู่เบื้องหลัง คอยอ่านข้อมูล
+          <strong>บัตรประชาชนไทย</strong> จากเครื่องอ่านบัตร แล้วส่งให้เว็บไซต์ที่คุณใช้งาน
+          — เสียบบัตร แล้วใช้งานได้ทันที</p>
+        <div class="hero-badges">
+          <span class="badge"><span class="dot"></span> ทำงานอัตโนมัติเมื่อเปิดเครื่อง</span>
+          <span class="badge">🪪 รองรับหลายเครื่องอ่าน</span>
+          <span class="badge">🔒 ข้อมูลอยู่ในเครื่องคุณ</span>
+        </div>
+      </div>
+      <div class="reveal" style="animation-delay:.2s">
+        <div class="idcard" role="img" aria-label="ภาพประกอบบัตรประชาชน">
+          <span class="garuda">THAI NATIONAL ID</span>
+          <div class="row">
+            <div class="photo"></div>
+            <div class="idlines"><span></span><span></span><span></span></div>
+          </div>
+          <div class="row" style="margin-top:14px">
+            <div class="chip"></div>
+            <div class="idlines" style="padding-top:8px"><span style="width:48%"></span><span style="width:38%"></span></div>
+          </div>
+          <div class="pid">1 2345 67890 12 3</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<main>
+
+  <!-- ============ OVERVIEW ============ -->
+  <section>
+    <div class="wrap">
+      <p class="kicker reveal">โปรแกรมนี้ทำอะไร</p>
+      <h2 class="reveal" style="animation-delay:.05s">ตัวกลางระหว่าง “บัตร” กับ “เว็บไซต์”</h2>
+      <p class="section-intro reveal" style="animation-delay:.1s">
+        เว็บเบราว์เซอร์อ่านบัตรประชาชนเองไม่ได้ — Thai ID Card Agent จึงทำหน้าที่เป็นสะพาน
+        คอยอ่านข้อมูลจากชิปบนบัตรแล้วส่งต่อให้เว็บที่รองรับ คุณไม่ต้องเปิดโปรแกรมอะไรเอง
+        แค่เปิดเครื่อง มันก็พร้อมทำงานแล้ว
+      </p>
+      <div class="features">
+        <div class="feature reveal" style="animation-delay:.12s">
+          <div class="ic" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke-width="1.8"><rect x="2" y="5" width="20" height="14" rx="2"/><circle cx="8" cy="12" r="2.4"/><path d="M14 10h5M14 14h5"/></svg></div>
+          <h3>อ่านบัตรอัตโนมัติ</h3>
+          <p>เสียบบัตรเข้าเครื่องอ่าน ข้อมูลพร้อมให้เว็บดึงไปใช้ภายในไม่กี่วินาที พร้อมรูปถ่าย</p>
+        </div>
+        <div class="feature reveal" style="animation-delay:.2s">
+          <div class="ic" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke-width="1.8"><path d="M12 3v18M5 8l7-5 7 5M5 8v8l7 5 7-5V8"/></svg></div>
+          <h3>ทำงานเบื้องหลัง</h3>
+          <p>ติดตั้งเป็นบริการของ Windows เปิดเครื่องมาก็เริ่มเอง ไม่ต้องคอยเปิดหน้าต่างค้างไว้</p>
+        </div>
+        <div class="feature reveal" style="animation-delay:.28s">
+          <div class="ic" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18"/></svg></div>
+          <h3>เชื่อมกับเว็บได้ทันที</h3>
+          <p>เว็บแอปต่าง ๆ เรียกใช้ผ่าน <code>localhost:9001</code> ได้เลย ไม่ต้องตั้งค่าเพิ่ม</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ REQUIREMENTS ============ -->
+  <section>
+    <div class="wrap">
+      <p class="kicker reveal">ก่อนเริ่มต้น</p>
+      <h2 class="reveal" style="animation-delay:.05s">สิ่งที่ต้องเตรียม</h2>
+      <p class="section-intro reveal" style="animation-delay:.1s">เตรียม 3 อย่างนี้ให้พร้อม แล้วการติดตั้งจะใช้เวลาไม่ถึงหนึ่งนาที</p>
+      <div class="req">
+        <div class="item reveal" style="animation-delay:.12s">
+          <div class="num" style="font-size:1.6rem;color:var(--gold)">01</div>
+          <div><b>คอมพิวเตอร์ Windows</b><br /><small>Windows 10 / 11 แบบ 64-bit</small></div>
+        </div>
+        <div class="item reveal" style="animation-delay:.18s">
+          <div class="num" style="font-size:1.6rem;color:var(--gold)">02</div>
+          <div><b>เครื่องอ่านบัตร Smart Card</b><br /><small>เสียบ USB และติดตั้ง driver ของเครื่องอ่านแล้ว</small></div>
+        </div>
+        <div class="item reveal" style="animation-delay:.24s">
+          <div class="num" style="font-size:1.6rem;color:var(--gold)">03</div>
+          <div><b>ไฟล์ติดตั้ง</b><br /><small><span class="mono">ThaiIDCardAgent-Setup.exe</span></small></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ INSTALL ============ -->
+  <section>
+    <div class="wrap">
+      <p class="kicker reveal">การติดตั้ง</p>
+      <h2 class="reveal" style="animation-delay:.05s">ติดตั้งง่าย ๆ ใน 3 ขั้นตอน</h2>
+      <p class="section-intro reveal" style="animation-delay:.1s">ไม่ต้องลงโปรแกรมอื่นเพิ่ม ทุกอย่างรวมอยู่ในไฟล์ติดตั้งเดียวแล้ว</p>
+      <div class="steps">
+        <div class="step reveal" style="animation-delay:.12s">
+          <span class="tag">ดับเบิลคลิก</span>
+          <div><h3>เปิดไฟล์ติดตั้ง</h3>
+            <p>ดับเบิลคลิกที่ <span class="mono">ThaiIDCardAgent-Setup.exe</span> เมื่อ Windows ถามเรื่องสิทธิ์ (User Account Control) ให้กด <strong>“Yes”</strong></p></div>
+        </div>
+        <div class="step reveal" style="animation-delay:.18s">
+          <span class="tag">รอสักครู่</span>
+          <div><h3>กด Install แล้วรอ</h3>
+            <p>กดปุ่ม <strong>Next / Install</strong> ไปเรื่อย ๆ ตัวติดตั้งจะคัดลอกไฟล์และตั้งค่าบริการให้เองโดยอัตโนมัติ</p></div>
+        </div>
+        <div class="step reveal" style="animation-delay:.24s">
+          <span class="tag">เสร็จสิ้น</span>
+          <div><h3>พร้อมใช้งานทันที</h3>
+            <p>เมื่อกด Finish โปรแกรมจะเริ่มทำงานเบื้องหลังที่ <code>http://localhost:9001</code> และจะเปิดเองทุกครั้งที่เปิดเครื่อง</p></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ VERIFY ============ -->
+  <section>
+    <div class="wrap">
+      <p class="kicker reveal">ตรวจสอบ</p>
+      <h2 class="reveal" style="animation-delay:.05s">เช็คให้แน่ใจว่าพร้อมใช้</h2>
+      <p class="section-intro reveal" style="animation-delay:.1s">
+        เปิดเว็บเบราว์เซอร์ (Chrome / Edge) แล้วพิมพ์ที่อยู่ด้านล่างนี้ —
+        ถ้าเห็น<strong>ชื่อเครื่องอ่านบัตรของคุณ</strong> แสดงว่าทุกอย่างพร้อมแล้ว
+      </p>
+      <div class="panel reveal" style="animation-delay:.14s">
+        <h3>ทดสอบ: ดูรายชื่อเครื่องอ่านบัตร</h3>
+        <div class="browser">
+          <div class="bar"><i></i><i></i><i></i>
+            <span class="url">http://localhost:9001/readers</span>
+          </div>
+          <div class="body">
+            [ <span class="s">"Alcorlink USB Smart Card Reader 0"</span> ]
+          </div>
+        </div>
+        <p style="margin:18px 0 0;color:#bcd6cf;font-size:.95rem">
+          ✓ เห็นชื่อในวงเล็บ = พร้อมใช้งาน &nbsp; · &nbsp; เห็น <span class="mono" style="color:#e7c977">[ ]</span> ว่าง = ยังไม่พบเครื่องอ่าน (ดูหัวข้อแก้ปัญหา)
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ USAGE ============ -->
+  <section>
+    <div class="wrap">
+      <p class="kicker reveal">วิธีใช้งานจริง</p>
+      <h2 class="reveal" style="animation-delay:.05s">อ่านบัตรใน 3 จังหวะ</h2>
+      <div class="steps">
+        <div class="step reveal" style="animation-delay:.12s">
+          <div><h3>เสียบบัตรประชาชน</h3>
+            <p>สอดบัตรเข้าเครื่องอ่าน โดยให้ <strong>ด้านที่มีชิปทอง</strong> เข้าไปก่อนและหงายขึ้น เสียบให้สุด</p></div>
+        </div>
+        <div class="step reveal" style="animation-delay:.18s">
+          <div><h3>เปิดเว็บที่รองรับ</h3>
+            <p>เข้าเว็บไซต์/ระบบงานที่คุณใช้ ซึ่งออกแบบมาให้เชื่อมกับ Agent นี้ แล้วกดปุ่ม “อ่านบัตร”</p></div>
+        </div>
+        <div class="step reveal" style="animation-delay:.24s">
+          <div><h3>ข้อมูลแสดงทันที</h3>
+            <p>ชื่อ-นามสกุล ที่อยู่ และรูปถ่ายจะถูกดึงขึ้นมาอัตโนมัติ หากมีหลายเครื่องอ่าน ระบบจะให้เลือกก่อน</p></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ DATA TABLE ============ -->
+  <section>
+    <div class="wrap">
+      <p class="kicker reveal">ข้อมูลที่อ่านได้</p>
+      <h2 class="reveal" style="animation-delay:.05s">บนบัตรมีอะไรบ้าง</h2>
+      <p class="section-intro reveal" style="animation-delay:.1s">Agent อ่านข้อมูลเหล่านี้จากชิปบนบัตร (ไม่รวมข้อมูลที่ต้องใช้รหัสพิเศษ)</p>
+      <div class="tablewrap reveal" style="animation-delay:.14s">
+        <table>
+          <thead><tr><th style="width:34%">ข้อมูล</th><th>รายละเอียด</th></tr></thead>
+          <tbody>
+            <tr><td>เลขบัตรประชาชน</td><td>13 หลัก</td></tr>
+            <tr><td>ชื่อ-นามสกุล (ไทย)</td><td>คำนำหน้า · ชื่อ · นามสกุล</td></tr>
+            <tr><td>ชื่อ-นามสกุล (อังกฤษ)</td><td>Title · First · Last name</td></tr>
+            <tr><td>วัน/เดือน/ปีเกิด</td><td>แปลงให้ทั้งแบบ พ.ศ. และ ค.ศ.</td></tr>
+            <tr><td>เพศ</td><td>ชาย / หญิง</td></tr>
+            <tr><td>ที่อยู่ตามทะเบียนบ้าน</td><td>ข้อความเต็ม</td></tr>
+            <tr><td>วันออกบัตร / วันหมดอายุ</td><td>วันที่บนบัตร</td></tr>
+            <tr><td>รูปถ่าย</td><td>รูปบนบัตร (สำหรับแสดงผลบนเว็บ)</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ TROUBLESHOOTING ============ -->
+  <section>
+    <div class="wrap">
+      <p class="kicker reveal">แก้ปัญหาเบื้องต้น</p>
+      <h2 class="reveal" style="animation-delay:.05s">เจอปัญหา? เริ่มจากตรงนี้</h2>
+      <p class="section-intro reveal" style="animation-delay:.1s">ปัญหาส่วนใหญ่แก้ได้เองในไม่กี่คลิก — คลิกที่หัวข้อเพื่อดูวิธีแก้</p>
+      <div class="faq">
+        <details class="reveal" style="animation-delay:.12s" open>
+          <summary><span class="q">›</span> เปิด <span class="mono">/readers</span> แล้วเห็นวงเล็บว่าง <span class="mono">[ ]</span></summary>
+          <div class="a">
+            ระบบยังไม่พบเครื่องอ่านบัตร ลองทำตามนี้ตามลำดับ:<br />
+            1) ถอดแล้วเสียบสาย USB ของเครื่องอ่านใหม่ &nbsp; 2) ตรวจว่าได้ติดตั้ง driver ของเครื่องอ่านแล้ว &nbsp;
+            3) เปิด <code>services.msc</code> ดูว่าบริการ <strong>Smart Card</strong> กำลังทำงาน (Running)
+          </div>
+        </details>
+        <details class="reveal" style="animation-delay:.16s">
+          <summary><span class="q">›</span> กดอ่านบัตรแล้วขึ้นว่า “ไม่พบบัตร”</summary>
+          <div class="a">
+            เสียบบัตรให้แน่นโดยให้ด้านชิปทองเข้าไปก่อน รอ 1–2 วินาทีแล้วลองใหม่
+            และเช็กว่าหน้าสัมผัสชิปบนบัตรไม่สกปรกหรือมีรอยขีดข่วน
+          </div>
+        </details>
+        <details class="reveal" style="animation-delay:.2s">
+          <summary><span class="q">›</span> เว็บเชื่อมต่อ Agent ไม่ได้</summary>
+          <div class="a">
+            ลองเปิด <code>http://localhost:9001/readers</code> ในเบราว์เซอร์โดยตรง ถ้าเปิดไม่ขึ้น
+            แสดงว่าบริการอาจหยุดทำงาน ให้รีสตาร์ตเครื่องหนึ่งครั้ง (บริการจะเริ่มเองอัตโนมัติ)
+            หรือเปิด <code>services.msc</code> → หา <strong>ThaiIDCardAgent</strong> → คลิกขวา → <strong>Start</strong>
+          </div>
+        </details>
+        <details class="reveal" style="animation-delay:.24s">
+          <summary><span class="q">›</span> ชื่อภาษาไทยแสดงเป็นตัวอักษรประหลาด</summary>
+          <div class="a">
+            ฝั่งเว็บต้องแสดงผลเป็นภาษาไทย (UTF-8) ตัว Agent ส่งข้อมูลภาษาไทยมาถูกต้องอยู่แล้ว
+            หากยังเพี้ยน ให้แจ้งผู้ดูแลระบบเว็บที่คุณใช้งาน
+          </div>
+        </details>
+        <details class="reveal" style="animation-delay:.28s">
+          <summary><span class="q">›</span> ต้องการให้ทำงานหลังเปลี่ยนเครื่องอ่าน</summary>
+          <div class="a">
+            ถอด-เสียบเครื่องอ่านใหม่ได้เลย Agent จะตรวจจับให้อัตโนมัติ ไม่ต้องติดตั้งใหม่
+            หากใช้หลายเครื่องอ่านพร้อมกัน เว็บจะให้เลือกว่าจะอ่านจากเครื่องไหน
+          </div>
+        </details>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ SECURITY ============ -->
+  <section>
+    <div class="wrap">
+      <div class="callout reveal">
+        <div class="shield" aria-hidden="true"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke-width="1.7"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6l8-3z"/><path d="M9 12l2 2 4-4"/></svg></div>
+        <div>
+          <h3>ข้อมูลของคุณปลอดภัย</h3>
+          <p>Agent ทำงานเฉพาะ<strong>ในเครื่องของคุณ</strong> (localhost) เท่านั้น ไม่ได้เปิดให้เครื่องอื่นในเครือข่ายเข้าถึง
+            และจะอ่านข้อมูลก็ต่อเมื่อ<strong>มีบัตรเสียบอยู่จริง</strong>และมีเว็บร้องขอเท่านั้น —
+            ไม่มีการเก็บหรือส่งข้อมูลออกไปไหนเอง</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ UNINSTALL ============ -->
+  <section>
+    <div class="wrap">
+      <p class="kicker reveal">การถอนการติดตั้ง</p>
+      <h2 class="reveal" style="animation-delay:.05s">ถ้าต้องการเอาออก</h2>
+      <div class="mini">
+        <div class="card reveal" style="animation-delay:.12s">
+          <h4>วิธีถอน</h4>
+          <p>ไปที่ <strong>Settings → Apps → Installed apps</strong> ค้นหา “Thai ID Card Agent” แล้วกด <strong>Uninstall</strong></p>
+        </div>
+        <div class="card reveal" style="animation-delay:.18s">
+          <h4>ระบบจัดการให้</h4>
+          <p>โปรแกรมจะหยุดและลบบริการ <span class="mono">ThaiIDCardAgent</span> ออกให้อัตโนมัติ ไม่มีไฟล์ตกค้าง</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <div class="frow">
+      <div>
+        <div class="logo">Thai ID Card <span>Agent</span></div>
+        <small>คู่มือการใช้งานสำหรับผู้ใช้ · เวอร์ชัน 1.0.0</small>
+      </div>
+      <div style="text-align:right">
+        <small>ทำงานที่ <span class="mono" style="color:#bcd6cf">http://localhost:9001</span></small><br />
+        <small>หากต้องการความช่วยเหลือเพิ่มเติม กรุณาติดต่อผู้ดูแลระบบของคุณ</small>
+      </div>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

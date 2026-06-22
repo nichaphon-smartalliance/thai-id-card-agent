@@ -227,22 +227,41 @@ bun agent.js
 
 ---
 
-## 7) สร้างตัวติดตั้ง (Inno Setup)
+## 7) สร้างตัวติดตั้ง (.exe) ไปลงเครื่องลูกค้า — Self-contained
 
-1. ติดตั้ง [Inno Setup 6+](https://jrsoftware.org/isdl.php)
-2. `bun install` ให้ครบก่อน (installer จะแพ็ค `node_modules` ไปด้วย)
-3. คอมไพล์:
-   ```powershell
-   & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer.iss
-   ```
-4. ได้ `dist-installer\ThaiIDCardAgent-Setup.exe`
+ตัวติดตั้งนี้ **ฝัง Bun runtime (bun.exe) ไว้ในตัว** → ลูกค้าดับเบิลคลิกไฟล์เดียวจบ
+**ไม่ต้องลง Bun หรืออะไรเพิ่มเลย**
 
-ตัวติดตั้งจะ:
-- คัดลอกโปรเจกต์ + `node_modules` ไปที่ `Program Files\ThaiIDCardAgent`
-- รัน `bun run install-service.ts` เพื่อสร้าง service (Auto Start)
-- ตอน uninstall จะ stop + ถอน service ให้
+บนเครื่อง dev (ที่มี Bun) ทำ 2 ขั้น:
 
-> เครื่องปลายทาง **ต้องมี Bun** (installer จะเตือนถ้าไม่พบ) — เพราะ agent รันบน Bun runtime
+```powershell
+# 1. แพ็คทุกอย่าง (app + bun.exe + node_modules) ลง dist-bundle/
+bun run package
+
+# 2. คอมไพล์ตัวติดตั้ง (ต้องลง Inno Setup 6 ก่อน: https://jrsoftware.org/isdl.php)
+& "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer.iss
+```
+
+ได้ไฟล์เดียวพร้อมส่งลูกค้า → **`dist-installer\ThaiIDCardAgent-Setup.exe`** (~50–60 MB)
+
+**สิ่งที่ตัวติดตั้งทำบนเครื่องลูกค้า:**
+1. คัดลอก agent + `bun.exe` + `node_modules` ไปที่ `Program Files\ThaiIDCardAgent`
+2. สร้าง Windows Service `ThaiIDCardAgent` (Auto Start) ที่รัน `bun.exe agent.js`
+3. เปิด `http://localhost:9001/readers` ให้ดูหลังติดตั้งเสร็จ
+4. ตอน Uninstall → stop + ถอน service ให้อัตโนมัติ
+
+> ลูกค้าแค่ต้องมี **เครื่องอ่าน Smart Card + driver** เท่านั้น (Windows x64)
+> — Bun ฝังมาในตัวติดตั้งแล้ว
+
+โครงสร้าง payload (สร้างโดย `bun run package`):
+```
+dist-bundle/
+├─ bun.exe            # Bun runtime ฝังมาด้วย
+├─ agent.js           # แอป (bundle แล้ว)
+├─ install-service.ts / uninstall-service.ts
+├─ node_modules/      # @pcsc-mini (native) + node-windows
+└─ patches/
+```
 
 ---
 

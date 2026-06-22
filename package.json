@@ -9,6 +9,7 @@
     "dev": "bun run --watch src/index.ts",
     "start": "bun run src/index.ts",
     "build": "bun run scripts/build.ts",
+    "package": "bun run scripts/package.ts",
     "compile": "bun build --compile --target=bun-windows-x64 ./src/index.ts --outfile ./dist/thai-id-card-agent.exe",
     "install-service": "bun run install-service.ts",
     "uninstall-service": "bun run uninstall-service.ts",
